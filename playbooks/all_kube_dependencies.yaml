@@ -1,0 +1,131 @@
+- hosts: all
+  remote_user: ubuntu
+  become: true
+  become_method: sudo
+  become_user: root
+  tasks:
+    # ========== Preperation ==========
+    - name: Ensure sysctl net.ipv4.ip_forward is set to 1
+      sysctl:
+        name: net.ipv4.ip_forward
+        value: 1
+        state: present
+        reload: true
+
+    - name: Make the swap inactive
+      command: swapoff -a
+
+    - name: Remove swap entry from /etc/fstab.
+      lineinfile:
+        dest: /etc/fstab
+        regexp: swap
+        state: absent
+
+    - name: Add module (overlay)
+      community.general.modprobe:
+        name: overlay
+        state: present
+        persistent: present
+
+    - name: Add module (br_netfilter)
+      community.general.modprobe:
+        name: br_netfilter
+        state: present
+        persistent: present
+
+    - name: Setting the system variables
+      copy:
+        src: ../files/k8s.conf
+        dest: /etc/sysctl.d/k8s.conf
+
+    - name: Refresh system variables
+      shell: sysctl --system
+
+    # ========== Install Dependencies ==========
+    - name: Install dependencies
+      apt:
+        name:
+          - apt-transport-https
+          - ca-certificates
+          - curl
+          - gnupg2
+          - software-properties-common
+        state: present
+
+    # ========== Install CRI-O ==========
+    - name: Get cri-o apt-key
+      apt_key: 
+        url: https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable/{{ OS }}/Release.key
+        state: present
+
+    - name: Get cri-o apt-key
+      apt_key: 
+        url: https://download.opensuse.org/repositories/devel:kubic:libcontainers:stable:cri-o:{{ CRIO_VERSION }}/{{ OS }}/Release.key
+        state: present
+
+    - name: Add cri-o stable repo
+      apt_repository:
+        repo: "deb http://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable/{{ OS }}/ /"
+        state: present
+        filename: cri-o-stable
+
+    - name: Add cri-o stable repo
+      apt_repository:
+        repo: "deb http://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable:/cri-o:/{{ CRIO_VERSION }}/{{ OS }}/ /"
+        state: present
+        filename: cri-o-{{ CRIO_VERSION }}
+  
+    - name: Update apt
+      apt:
+        update_cache: yes
+        cache_valid_time: 86400 # One day
+
+    - name: Install CRI-O
+      apt:
+        name:
+          - cri-o
+          - cri-o-runc
+          - cri-tools
+          - runc
+        state: present
+        update_cache: yes
+
+    - name: Enable CRI-O service
+      systemd:
+        name: crio
+        enabled: yes
+
+    - name: Restart CRI-O
+      systemd:
+        state: restarted
+        daemon_reload: yes
+        name: crio
+
+    - name: Make sure CRI-O is running
+      systemd:
+        name: crio
+        state: started
+
+    # ========== Install kubelet, kubeadm, kubectl ==========
+    - name: Get Kubernetes apt-key
+      apt_key: 
+        url: https://packages.cloud.google.com/apt/doc/apt-key.gpg
+        state: present
+
+    - name: Add kubernetes repo
+      apt_repository:
+        repo: deb http://apt.kubernetes.io/ kubernetes-xenial main
+        state: present
+        filename: kubernetes
+
+    - name: Install kubernetes packages
+      apt:
+        name:
+          - kubeadm={{ KUBERNETES_VERSION }}
+          - kubelet={{ KUBERNETES_VERSION }}
+          - kubectl={{ KUBERNETES_VERSION }}
+        update_cache: true
+        state: present
+
+    - name: Hold kubernetes
+      shell: apt-mark hold kubelet kubeadm kubectl

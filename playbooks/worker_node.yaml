@@ -1,0 +1,21 @@
+- hosts: master_node
+  remote_user: ubuntu
+  tasks:
+    - name: Generate join command
+      command: kubeadm token create --print-join-command
+      register: join_command
+      
+    - name: Copy join command to local file
+      local_action: copy content="{{ join_command.stdout_lines[0] }}" dest="../results/join-command"
+
+- hosts: worker_node
+  remote_user: ubuntu
+  become: true
+  become_method: sudo
+  become_user: root
+  tasks:
+    - name: Copy the join command to server location
+      copy: src=../results/join-command dest=/tmp/join-command.sh mode=0777
+      
+    - name: Join the node to cluster
+      command: sh /tmp/join-command.sh

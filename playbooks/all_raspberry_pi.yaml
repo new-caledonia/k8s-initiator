@@ -1,0 +1,31 @@
+- hosts: all
+  remote_user: ubuntu
+  become: true
+  become_method: sudo
+  become_user: root
+  tasks:
+    - name: System update and upgrade
+      apt:
+        upgrade: yes
+        update_cache: yes
+        cache_valid_time: 86400 # One day
+
+    - name: Install linux-modules-extra-raspi
+      apt:
+        name: linux-modules-extra-raspi
+        state: present
+
+    - name: Install open-iscsi
+      apt:
+        name: open-iscsi
+        state: present
+
+    - name: Reboot
+      reboot:
+        reboot_timeout: 600
+
+    - name: Add module (dummy)
+      community.general.modprobe:
+        name: dummy
+        state: present
+        persistent: present

@@ -1,0 +1,59 @@
+- hosts: master_node
+  remote_user: ubuntu
+  become: true
+  become_method: sudo
+  become_user: root
+  tasks:
+    # ========== Preparation ==========
+    - name: Copy prepared kubeadm config to remote
+      copy:
+        src: ../files/kubeadm-config.yaml
+        dest: $HOME/kubeadm-config.yaml
+
+    - name: Copy prepared calico config to remote
+      copy:
+        src: ../files/calico.yaml
+        dest: $HOME/calico.yaml
+
+    # ========== Initiate kubeadm ==========
+    - name: Init kubeadm
+      shell: |
+        kubeadm init --config=$HOME/kubeadm-config.yaml
+
+    # ========== Copy admin.conf ==========
+    - name: Create .kube directory
+      become: yes
+      become_user: ubuntu
+      file:
+        path: $HOME/.kube
+        state: directory
+        mode: 0755
+
+    - name: Create .kube directory for root
+      file:
+        path: $HOME/.kube
+        state: directory
+        mode: 0755
+
+    - name: Copy admin.conf to user's kube config
+      copy:
+        src: /etc/kubernetes/admin.conf
+        dest: /home/ubuntu/.kube/config
+        remote_src: yes
+        owner: ubuntu
+
+    - name: Copy admin.conf to root's kube config
+      copy:
+        src: /etc/kubernetes/admin.conf
+        dest: $HOME/.kube/config
+        remote_src: yes
+
+    - name: Copy admin.conf to local
+      fetch:
+        src: /etc/kubernetes/admin.conf
+        dest: ../results
+
+    # ========== Setup CNI ==========
+    - name: Install Pod network
+      shell: kubectl apply -f $HOME/calico.yaml
+
