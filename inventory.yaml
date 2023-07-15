@@ -1,0 +1,32 @@
+all:
+  hosts:
+    rp-k8s-master-1:
+      ansible_host: 10.0.0.128
+      ansible_ssh_private_key_file: "./keys/rp-k8s-master-1"
+      inventory_hostname: rp-k8s-master-1
+    rp-k8s-worker-1:
+      ansible_host: 10.0.0.192
+      ansible_ssh_private_key_file: "./keys/rp-k8s-worker-1"
+      inventory_hostname: rp-k8s-worker-1
+    rp-k8s-worker-2:
+      ansible_host: 10.0.0.193
+      ansible_ssh_private_key_file: "./keys/rp-k8s-worker-2"
+      inventory_hostname: rp-k8s-worker-2
+    rp-k8s-worker-3:
+      ansible_host: 10.0.0.194
+      ansible_ssh_private_key_file: "./keys/rp-k8s-worker-3"
+      inventory_hostname: rp-k8s-worker-3
+  vars:
+    OS: xUbuntu_22.04
+    CRIO_VERSION: 1.26
+    KUBERNETES_VERSION: 1.26.5-00
+
+master_node:
+  hosts:
+    rp-k8s-master-1:
+
+worker_node:
+  hosts:
+    rp-k8s-worker-1:
+    rp-k8s-worker-2:
+    rp-k8s-worker-3:
