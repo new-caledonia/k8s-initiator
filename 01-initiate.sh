@@ -1,3 +1,5 @@
+export ANSIBLE_HOST_KEY_CHECKING=False
+
 # Setup master node
 ansible-playbook -i inventory.yaml ./playbooks/master_node.yaml
 

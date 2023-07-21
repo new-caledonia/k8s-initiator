@@ -1,3 +1,5 @@
+export ANSIBLE_HOST_KEY_CHECKING=False
+
 # Setup Raspberry pi
 ansible-playbook -i inventory.yaml ./playbooks/all_raspberry_pi.yaml
 
